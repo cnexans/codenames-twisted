@@ -72,12 +72,29 @@ const instanceProfile = new aws.iam.InstanceProfile("codenames-profile", { role:
 
 // ── 3. Red ──────────────────────────────────────────────────────────────
 const vpc = aws.ec2.getVpcOutput({ default: true });
-const subnets = aws.ec2.getSubnetsOutput({
-  filters: [
-    { name: "vpc-id", values: [vpc.id] },
-    { name: "default-for-az", values: ["true"] },
-  ],
-});
+
+// La AZ se elige a propósito y en orden: us-east-1e suele quedarse sin capacidad
+// de t2.micro (Server.InsufficientInstanceCapacity). Si una AZ falla, reordena
+// esta lista con: pulumi config set azs us-east-1b,us-east-1c
+const azs = (cfg.get("azs") ?? "us-east-1a,us-east-1b,us-east-1c,us-east-1d,us-east-1f").split(",");
+const subnetId = pulumi
+  .all(
+    azs.map(
+      (az) =>
+        aws.ec2.getSubnetsOutput({
+          filters: [
+            { name: "vpc-id", values: [vpc.id] },
+            { name: "default-for-az", values: ["true"] },
+            { name: "availability-zone", values: [az.trim()] },
+          ],
+        }).ids,
+    ),
+  )
+  .apply((lists) => {
+    const hit = lists.find((ids) => ids.length > 0);
+    if (!hit) throw new Error(`Ninguna AZ de [${azs}] tiene subred por defecto en la VPC default`);
+    return hit[0];
+  });
 
 const sg = new aws.ec2.SecurityGroup("codenames-sg", {
   vpcId: vpc.id,
@@ -114,7 +131,7 @@ const userData = pulumi
 const server = new aws.ec2.Instance("codenames", {
   ami,
   instanceType,
-  subnetId: subnets.ids[0],
+  subnetId,
   vpcSecurityGroupIds: [sg.id],
   iamInstanceProfile: instanceProfile.name,
   associatePublicIpAddress: true,

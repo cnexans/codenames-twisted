@@ -1,0 +1,4 @@
+config:
+  aws:region: us-east-1
+  codenames-twisted:domain: codenames.cnexans.com
+  codenames-twisted:acmeEmail: admin@cnexans.com

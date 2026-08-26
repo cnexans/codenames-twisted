@@ -7,9 +7,12 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "art": "node scripts/gen-art.mjs"
+    "art": "node scripts/gen-art.mjs",
+    "test": "node test/flow.mjs"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "express": "^4.19.2",
     "ws": "^8.18.0"
