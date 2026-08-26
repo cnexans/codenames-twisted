@@ -8,8 +8,12 @@ hasta el final de la partida.
 
 ## Cómo se juega
 
-1. Alguien crea una sala y comparte el código de 4 letras (o el enlace).
+1. Alguien crea una sala y comparte el código de 4 letras (o el enlace). La portada
+   también lista **las salas abiertas en vivo**: se puede entrar de un clic, o mirar
+   una partida en curso como espectador (sin ver los colores, claro).
 2. Cada quien elige equipo **rojo** o **azul** (mínimo 2 por equipo). También hay espectadores.
+   Mientras se arman los equipos cualquiera puede cambiarse el nombre desde el panel
+   *Tu agente* (útil si entraste sin ponerlo); en plena ronda queda bloqueado.
 3. En cada ronda, **un integrante distinto de cada equipo es el operador**: solo esa persona ve
    los colores del tablero. La rotación sigue el orden de llegada al equipo, así que en una
    partida de 5 rondas con 3 personas por equipo, todas terminan siendo operador.

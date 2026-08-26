@@ -15,6 +15,8 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 /** @type {Map<string, any>} */
 const rooms = new Map();
+/** Sockets mirando la portada: reciben la lista de salas abiertas en vivo. */
+const lobbySubs = new Set();
 
 function getRoom(code) {
   return rooms.get(String(code || '').toUpperCase().trim());
@@ -25,6 +27,35 @@ function broadcast(room) {
     if (ws.readyState !== ws.OPEN) continue;
     ws.send(JSON.stringify(G.stateFor(room, pid)));
   }
+  pushLobby();
+}
+
+/** Salas visibles en la portada: solo las que tienen a alguien conectado. */
+function roomList() {
+  const list = [];
+  for (const room of rooms.values()) {
+    const online = room.players.filter((p) => p.connected).length;
+    if (!online) continue;
+    list.push({
+      code: room.code,
+      players: online,
+      phase: room.phase,
+      round: room.round,
+      rounds: room.settings.rounds,
+      host: room.players.find((p) => p.id === room.hostId)?.name || '—',
+      teams: {
+        red: room.players.filter((p) => p.team === 'red').length,
+        blue: room.players.filter((p) => p.team === 'blue').length,
+      },
+    });
+  }
+  return list.sort((a, b) => (a.phase === b.phase ? b.players - a.players : a.phase === 'lobby' ? -1 : 1));
+}
+
+function pushLobby() {
+  if (!lobbySubs.size) return;
+  const msg = JSON.stringify({ t: 'roomList', rooms: roomList() });
+  for (const ws of lobbySubs) if (ws.readyState === ws.OPEN) ws.send(msg);
 }
 
 function fx(room, event, payload = {}) {
@@ -47,6 +78,7 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    lobbySubs.delete(ws);
     const room = ctx.room;
     if (!room) return;
     if (room.sockets.get(ctx.playerId) === ws) {
@@ -59,6 +91,12 @@ wss.on('connection', (ws) => {
 });
 
 function handle(ws, ctx, m) {
+  // --- Portada: lista de salas abiertas ---
+  if (m.t === 'rooms') {
+    lobbySubs.add(ws);
+    return send(ws, { t: 'roomList', rooms: roomList() });
+  }
+
   // --- Entrada ---
   if (m.t === 'create' || m.t === 'join') {
     const playerId = String(m.playerId || '').slice(0, 40) || Math.random().toString(36).slice(2, 12);
@@ -78,6 +116,7 @@ function handle(ws, ctx, m) {
     }
     const prev = room.sockets.get(playerId);
     if (prev && prev !== ws && prev.readyState === prev.OPEN) prev.close(4001, 'sesion-reemplazada');
+    lobbySubs.delete(ws);
     ctx.room = room;
     ctx.playerId = playerId;
     G.addPlayer(room, { id: playerId, name });
@@ -93,9 +132,14 @@ function handle(ws, ctx, m) {
   const isHost = room.hostId === me.id;
 
   switch (m.t) {
-    case 'name':
-      me.name = String(m.name || '').trim().slice(0, 18) || me.name;
+    case 'name': {
+      // Renombrarse está permitido mientras se acomodan los equipos, no en plena ronda.
+      if (room.phase === 'playing') return fail(ws, 'Puedes cambiar tu nombre entre rondas, no en plena partida');
+      const nuevo = String(m.name || '').trim().slice(0, 18);
+      if (!nuevo) return fail(ws, 'El nombre no puede quedar vacío');
+      me.name = nuevo;
       break;
+    }
     case 'team':
       G.setTeam(room, me, m.team);
       break;
@@ -159,7 +203,7 @@ setInterval(() => {
     const alive = [...room.sockets.values()].some((s) => s.readyState === s.OPEN);
     if (!alive) {
       room.emptySince ||= now;
-      if (now - room.emptySince > 45 * 60 * 1000) rooms.delete(code);
+      if (now - room.emptySince > 45 * 60 * 1000) { rooms.delete(code); pushLobby(); }
     } else {
       room.emptySince = null;
     }

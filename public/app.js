@@ -13,16 +13,21 @@ const store = {
   set name(v) { localStorage.setItem('nc:name', v); },
 };
 
-let ws = null, state = null, pending = null, retry = 0;
+let ws = null, state = null, pending = null, retry = 0, rooms = [];
 let armed = -1, peeking = false, lastPhaseKey = '';
 
 /* ── conexión ── */
 function connect() {
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-  ws.onopen = () => { retry = 0; if (pending) ws.send(JSON.stringify(pending)); };
+  ws.onopen = () => {
+    retry = 0;
+    if (pending) ws.send(JSON.stringify(pending));
+    else ws.send(JSON.stringify({ t: 'rooms' })); // portada: lista de salas en vivo
+  };
   ws.onmessage = (ev) => {
     const m = JSON.parse(ev.data);
     if (m.t === 'state') { state = m; render(); }
+    else if (m.t === 'roomList') { rooms = m.rooms; renderRooms(); }
     else if (m.t === 'joined') { pending = { t: 'join', code: m.code, name: nameValue(), playerId: store.id }; location.hash = m.code; }
     else if (m.t === 'error') toast(m.msg, true);
     else if (m.t === 'fx') sfx(m);
@@ -51,10 +56,40 @@ $('#form-join').onsubmit = (e) => {
   e.preventDefault();
   const code = $('#in-code').value.trim().toUpperCase();
   if (code.length !== 4) return toast('El código tiene 4 caracteres', true);
+  joinCode(code);
+};
+function joinCode(code) {
   store.name = nameValue();
   pending = { t: 'join', code, name: store.name, playerId: store.id };
   send(pending);
-};
+}
+
+function renderRooms() {
+  const panel = $('#rooms-panel'), ul = $('#rooms');
+  panel.hidden = false;
+  ul.innerHTML = '';
+  if (!rooms.length) {
+    const p = el('p', 'rooms-empty', 'Todavía no hay salas abiertas. Crea una y comparte el código.');
+    ul.append(p);
+    return;
+  }
+  for (const r of rooms) {
+    const li = el('li', 'room' + (r.phase === 'lobby' ? '' : ' playing'));
+    li.append(el('div', 'room-code', r.code));
+    const info = el('div', 'room-info');
+    info.append(el('b', 'live', r.phase === 'lobby' ? 'Armando equipos' : `Ronda ${r.round}/${r.rounds}`));
+    const meta = el('span');
+    meta.append(el('i', 't-red', String(r.teams.red)), document.createTextNode(' vs '), el('i', 't-blue', String(r.teams.blue)));
+    meta.append(document.createTextNode(` · ${r.players} ${r.players === 1 ? 'conectado' : 'conectados'} · ${r.host}`));
+    info.append(meta);
+    li.append(info);
+    const b = el('button', 'btn', r.phase === 'lobby' ? 'Entrar' : 'Mirar');
+    b.onclick = () => joinCode(r.code);
+    li.append(b);
+    ul.append(li);
+  }
+}
+
 if (location.hash.length === 5) {
   const code = location.hash.slice(1).toUpperCase();
   $('#in-code').value = code;
@@ -65,6 +100,15 @@ if (location.hash.length === 5) {
 document.querySelectorAll('[data-team]').forEach((b) => {
   b.onclick = () => send({ t: 'team', team: b.dataset.team === 'none' ? null : b.dataset.team });
 });
+const nameField = $('#lobby-name');
+nameField.onchange = () => {
+  const nuevo = nameField.value.trim().slice(0, 18);
+  if (!nuevo || nuevo === state?.you?.name) { nameField.value = state?.you?.name || ''; return; }
+  store.name = nuevo;
+  $('#in-name').value = nuevo;
+  send({ t: 'name', name: nuevo });
+};
+nameField.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); nameField.blur(); } };
 $('#btn-shuffle').onclick = () => send({ t: 'shuffle' });
 $('#btn-start').onclick = () => send({ t: 'start' });
 $('#btn-next').onclick = () => { peeking = false; send({ t: 'next' }); };
@@ -93,6 +137,7 @@ function show(id) {
 
 function renderLobby() {
   $('#lobby-code').textContent = state.code;
+  if (document.activeElement !== nameField) nameField.value = state.you.name;
   const groups = { red: $('#lobby-red'), blue: $('#lobby-blue'), none: $('#lobby-none') };
   Object.values(groups).forEach((u) => (u.innerHTML = ''));
   for (const p of state.players) {

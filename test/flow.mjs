@@ -23,6 +23,7 @@ function client(tag) {
       const m = JSON.parse(d);
       if (m.t === 'state') w.last = m;
       if (m.t === 'joined') w.code = m.code;
+      if (m.t === 'roomList') w.rooms = m.rooms;
       if (m.t === 'error') w.lastError = m.msg;
     });
     w.on('open', () => res(w));
@@ -33,6 +34,14 @@ const send = (w, o) => w.send(JSON.stringify(o));
 async function until(w, pred, what, tries = 40) {
   for (let i = 0; i < tries; i++) {
     if (w.last && pred(w.last)) return w.last;
+    await wait(50);
+  }
+  throw new Error(`timeout esperando: ${what}`);
+}
+/** Espera a que una condición cualquiera se cumpla. */
+async function untilTrue(fn, what, tries = 40) {
+  for (let i = 0; i < tries; i++) {
+    if (fn()) return;
     await wait(50);
   }
   throw new Error(`timeout esperando: ${what}`);
@@ -53,6 +62,22 @@ for (const [w, name, id] of [[b, 'Beto', 'p2'], [c, 'Cris', 'p3'], [d, 'Dani', '
 }
 ok(a.last.players.length === 4, '4 jugadores en la sala');
 
+// ── salas abiertas y renombrado ─────────────────────────────────
+const mirón = await client('M');
+send(mirón, { t: 'rooms' });
+await untilTrue(() => mirón.rooms, 'lista de salas');
+const fila = mirón.rooms.find((r) => r.code === code);
+ok(!!fila && fila.players === 4 && fila.phase === 'lobby', 'la sala aparece en la lista de salas abiertas');
+
+send(b, { t: 'name', name: 'Beto el Rápido' });
+await until(a, (s) => s.players.some((p) => p.name === 'Beto el Rápido'), 'renombrado en la sala');
+ok(true, 'un jugador puede renombrarse mientras se arman los equipos');
+send(b, { t: 'name', name: '   ' });
+await wait(120);
+ok(b.lastError === 'El nombre no puede quedar vacío', 'no se admite un nombre vacío');
+send(b, { t: 'name', name: 'Beto' });
+await until(a, (s) => s.players.some((p) => p.name === 'Beto'), 'nombre restaurado');
+
 send(a, { t: 'team', team: 'red' }); send(b, { t: 'team', team: 'red' });
 send(c, { t: 'team', team: 'blue' }); send(d, { t: 'team', team: 'blue' });
 await until(a, (s) => !s.startError, 'equipos completos');
@@ -63,6 +88,11 @@ send(a, { t: 'settings', rounds: 2 });
 send(a, { t: 'start' });
 await until(a, (s) => s.phase === 'playing', 'ronda 1');
 ok(a.last.round === 1 && a.last.game.turn === 'red', 'ronda 1 en curso y empieza rojo');
+
+send(b, { t: 'name', name: 'Tramposo' });
+await wait(120);
+ok(/entre rondas/.test(b.lastError || ''), 'renombrarse en plena ronda queda bloqueado');
+ok(a.last.players.every((p) => p.name !== 'Tramposo'), 'el nombre no cambió durante la partida');
 
 const redBoss = bossOf(all, 'red'), blueBoss = bossOf(all, 'blue');
 const redSpy = spyOf(all, 'red'), blueSpy = spyOf(all, 'blue');
@@ -122,6 +152,6 @@ await until(a, (s) => s.phase === 'gameEnd', 'fin de partida');
 ok(a.last.history.length === 2, 'historial con las 2 rondas');
 console.log(`\nMarcador final: rojo ${a.last.scores.red} — azul ${a.last.scores.blue}`);
 
-all.forEach((w) => w.close());
+[...all, mirón].forEach((w) => w.close());
 console.log(fails ? `\n${fails} fallo(s)` : '\nTodo en orden ✅');
 process.exit(fails ? 1 : 0);

@@ -36,6 +36,11 @@
 
     <p class="home-note">Se juega en tiempo real: comparte el código con tu gente y todos ven el mismo tablero.</p>
   </div>
+
+  <div id="rooms-panel" class="rooms-panel" hidden>
+    <h2>Salas abiertas</h2>
+    <ul id="rooms" class="rooms"></ul>
+  </div>
 </section>
 
 <!-- ═══════════ SALA DE ESPERA ═══════════ -->
@@ -67,6 +72,12 @@
     </div>
 
     <div class="lobby-side">
+      <h3>Tu agente</h3>
+      <label class="field row">
+        <span>Nombre</span>
+        <input id="lobby-name" maxlength="18" autocomplete="off" placeholder="Agente Rivas" />
+      </label>
+
       <h3>Reglas de la partida</h3>
       <label class="field row">
         <span>Rondas</span>
