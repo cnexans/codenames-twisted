@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" width="240" height="300" role="img" aria-label="Asesino">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="34%" r="45%">
+      <stop offset="0" stop-color="#ff4d4d" stop-opacity=".45"/><stop offset="1" stop-color="#ff4d4d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#25262b"/><stop offset="1" stop-color="#0c0d10"/>
+    </linearGradient>
+  </defs>
+  <circle cx="120" cy="102" r="96" fill="url(#glow)"/>
+  <path d="M120 150c46 0 84 26 92 62l10 88H18l10-88c8-36 46-62 92-62z" fill="url(#coat)"/>
+  <path d="M120 158l-32 28 32 44 32-44z" fill="#07080a"/>
+  <path d="M96 300l18-120 6 12 6-12 18 120z" fill="#0a0b0e" opacity=".9"/>
+  <ellipse cx="120" cy="106" rx="38" ry="42" fill="#101116"/>
+  <path d="M82 96a38 42 0 0 1 76 0v10a38 42 0 0 1-76 0z" fill="#07080a"/>
+  <ellipse cx="106" cy="100" rx="7" ry="4" fill="#ff5a4d"/>
+  <ellipse cx="134" cy="100" rx="7" ry="4" fill="#ff5a4d"/>
+  <ellipse cx="120" cy="80" rx="88" ry="17" fill="#0e0f13"/>
+  <path d="M78 78c0-30 6-48 42-48s42 18 42 48z" fill="#141519"/>
+  <path d="M78 74h84v10H78z" fill="#000" opacity=".6"/>
+  <path d="M40 250c30-16 62-16 84-6" stroke="#2a2c33" stroke-width="3" fill="none" opacity=".6"/>
+</svg>

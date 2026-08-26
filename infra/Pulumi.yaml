@@ -1,0 +1,7 @@
+name: codenames-twisted
+runtime: nodejs
+description: EC2 (capa gratuita) + Caddy con HTTPS automático para el juego Nombres Clave
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: ""

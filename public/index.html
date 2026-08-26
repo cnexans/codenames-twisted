@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Nombres Clave · juego de espías por equipos</title>
+<meta name="description" content="Juego de palabras por equipos rojo y azul, con operador rotativo y puntaje acumulado por rondas." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🕵️</text></svg>" />
+</head>
+<body>
+
+<!-- ═══════════ INICIO ═══════════ -->
+<section id="screen-home" class="screen">
+  <div class="home-art"></div>
+  <div class="home-card">
+    <h1 class="logo">NOMBRES<span>CLAVE</span></h1>
+    <p class="tagline">Dos equipos. Un operador por ronda. 25 palabras y un asesino.</p>
+
+    <label class="field">
+      <span>Tu nombre en clave</span>
+      <input id="in-name" maxlength="18" placeholder="Agente Rivas" autocomplete="off" />
+    </label>
+
+    <button id="btn-create" class="btn btn-primary">Crear sala</button>
+
+    <div class="or"><span>o</span></div>
+
+    <form id="form-join" class="join-row">
+      <input id="in-code" maxlength="4" placeholder="CÓDIGO" autocomplete="off" spellcheck="false" />
+      <button class="btn" type="submit">Entrar</button>
+    </form>
+
+    <p class="home-note">Se juega en tiempo real: comparte el código con tu gente y todos ven el mismo tablero.</p>
+  </div>
+</section>
+
+<!-- ═══════════ SALA DE ESPERA ═══════════ -->
+<section id="screen-lobby" class="screen" hidden>
+  <header class="topbar">
+    <h1 class="logo small">NOMBRES<span>CLAVE</span></h1>
+    <button id="btn-copy" class="code-chip" title="Copiar enlace de invitación">
+      Sala <b id="lobby-code">····</b> <span class="copy-hint">copiar enlace</span>
+    </button>
+  </header>
+
+  <div class="lobby">
+    <div class="lobby-teams">
+      <div class="team-card red">
+        <div class="team-head"><h2>Equipo Rojo</h2><img class="team-spy" src="/img/spy-red.png" alt="" onerror="this.onerror=null;this.src=this.src.replace('.png','.svg')" /></div>
+        <ul id="lobby-red" class="roster"></ul>
+        <button class="btn btn-red" data-team="red">Unirme al rojo</button>
+      </div>
+      <div class="team-card neutral">
+        <h2>Sin equipo</h2>
+        <ul id="lobby-none" class="roster"></ul>
+        <button class="btn btn-ghost" data-team="none">Ser espectador</button>
+      </div>
+      <div class="team-card blue">
+        <div class="team-head"><h2>Equipo Azul</h2><img class="team-spy" src="/img/spy-blue.png" alt="" onerror="this.onerror=null;this.src=this.src.replace('.png','.svg')" /></div>
+        <ul id="lobby-blue" class="roster"></ul>
+        <button class="btn btn-blue" data-team="blue">Unirme al azul</button>
+      </div>
+    </div>
+
+    <div class="lobby-side">
+      <h3>Reglas de la partida</h3>
+      <label class="field row">
+        <span>Rondas</span>
+        <select id="set-rounds">
+          <option value="3">3</option><option value="5" selected>5</option>
+          <option value="7">7</option><option value="9">9</option>
+        </select>
+      </label>
+      <label class="field row">
+        <span>Tiempo por turno</span>
+        <select id="set-timer">
+          <option value="0" selected>Sin límite</option>
+          <option value="60">60 s</option><option value="90">90 s</option>
+          <option value="120">2 min</option><option value="180">3 min</option>
+        </select>
+      </label>
+
+      <div class="rules">
+        <p><b>El operador rota cada ronda.</b> En cada ronda un integrante distinto de cada equipo ve los colores del tablero y da las pistas.</p>
+        <p><b>Puntos:</b> 1 por cada contacto propio descubierto + 3 por ganar la ronda. Gana quien más acumule al final.</p>
+      </div>
+
+      <p id="lobby-warn" class="warn"></p>
+      <button id="btn-shuffle" class="btn btn-ghost">Mezclar equipos</button>
+      <button id="btn-start" class="btn btn-primary">Empezar partida</button>
+      <p id="host-note" class="muted small"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PARTIDA ═══════════ -->
+<section id="screen-game" class="screen" hidden>
+  <header class="topbar game">
+    <h1 class="logo small">NOMBRES<span>CLAVE</span></h1>
+    <div class="scoreboard">
+      <div class="sb red"><span class="sb-label">ROJO</span><b id="score-red">0</b></div>
+      <div class="sb-round">Ronda <b id="round-now">1</b>/<b id="round-total">5</b></div>
+      <div class="sb blue"><b id="score-blue">0</b><span class="sb-label">AZUL</span></div>
+    </div>
+    <div class="top-right">
+      <span id="timer" class="timer" hidden>0:00</span>
+      <span class="code-chip mini">Sala <b id="game-code">····</b></span>
+    </div>
+  </header>
+
+  <main class="table">
+    <aside class="side red">
+      <div class="side-top">
+        <span class="cards-left" id="left-red">9</span>
+        <img class="side-spy" src="/img/spy-red.png" alt="" onerror="this.onerror=null;this.src=this.src.replace('.png','.svg')" />
+      </div>
+      <ul id="team-red" class="roster compact"></ul>
+    </aside>
+
+    <div class="center">
+      <div id="board" class="board"></div>
+      <div id="actionbar" class="actionbar"></div>
+    </div>
+
+    <aside class="side blue">
+      <div class="side-top">
+        <span class="cards-left" id="left-blue">8</span>
+        <img class="side-spy" src="/img/spy-blue.png" alt="" onerror="this.onerror=null;this.src=this.src.replace('.png','.svg')" />
+      </div>
+      <ul id="team-blue" class="roster compact"></ul>
+    </aside>
+  </main>
+
+  <div id="log" class="log"></div>
+</section>
+
+<!-- ═══════════ RESULTADOS ═══════════ -->
+<div id="overlay" class="overlay" hidden>
+  <div class="modal">
+    <img id="modal-art" class="modal-art" src="" alt="" hidden />
+    <h2 id="modal-title">Fin de ronda</h2>
+    <p id="modal-sub" class="modal-sub"></p>
+    <div id="modal-points" class="modal-points"></div>
+    <table id="modal-history" class="history"></table>
+    <div class="modal-actions">
+      <button id="btn-next" class="btn btn-primary">Siguiente ronda</button>
+      <button id="btn-reset" class="btn btn-ghost">Nueva partida</button>
+      <button id="btn-peek" class="btn btn-ghost">Ver el tablero</button>
+    </div>
+    <p id="modal-note" class="muted small"></p>
+  </div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+<script src="/app.js" type="module"></script>
+</body>
+</html>

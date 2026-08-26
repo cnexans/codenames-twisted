@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" width="240" height="300" role="img" aria-label="Espía">
+  <defs>
+    <linearGradient id="c-spy-red.svg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d4462f"/><stop offset="1" stop-color="#8f2b1c"/>
+    </linearGradient>
+    <filter id="grain-spy-red.svg"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/>
+      <feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.06"/></feComponentTransfer>
+      <feComposite operator="in" in2="SourceGraphic"/></filter>
+  </defs>
+  <!-- hombros y gabardina -->
+  <path d="M120 150c46 0 84 26 92 62l10 88H18l10-88c8-36 46-62 92-62z" fill="url(#c-spy-red.svg)"/>
+  <!-- solapas -->
+  <path d="M120 156 96 300H60l24-118z" fill="#8f2b1c" opacity=".85"/>
+  <path d="M120 156l24 144h36l-24-118z" fill="#8f2b1c" opacity=".85"/>
+  <path d="M120 158l-30 26 30 40 30-40z" fill="#1a2026"/>
+  <path d="M120 196l-9 14 9 46 9-46z" fill="#f0d9b5"/>
+  <!-- cuello -->
+  <path d="M104 128h32v34h-32z" fill="#c9a689"/>
+  <path d="M104 128h32v14h-32z" fill="#8d6f58"/>
+  <!-- cabeza -->
+  <ellipse cx="120" cy="106" rx="38" ry="42" fill="#dcb797"/>
+  <!-- sombra del ala sobre el rostro -->
+  <path d="M82 96a38 42 0 0 1 76 0v10a38 42 0 0 1-76 0z" fill="#2a2118" opacity=".82"/>
+  <ellipse cx="106" cy="100" rx="7" ry="4.5" fill="#f6f0e2"/>
+  <ellipse cx="134" cy="100" rx="7" ry="4.5" fill="#f6f0e2"/>
+  <ellipse cx="106" cy="100" rx="3" ry="3" fill="#20262c"/>
+  <ellipse cx="134" cy="100" rx="3" ry="3" fill="#20262c"/>
+  <path d="M110 130q10 6 20 0" stroke="#8d6f58" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- sombrero -->
+  <ellipse cx="120" cy="80" rx="86" ry="17" fill="#7a1f14"/>
+  <ellipse cx="120" cy="76" rx="86" ry="15" fill="#7a1f14" opacity=".7"/>
+  <path d="M78 78c0-30 6-48 42-48s42 18 42 48z" fill="#7a1f14"/>
+  <path d="M78 74h84v10H78z" fill="#1a2026" opacity=".55"/>
+  <path d="M96 36c14-8 34-8 48 0-10 12-38 12-48 0z" fill="#ffffff" opacity=".08"/>
+  <g><rect x="150" y="212" width="62" height="44" rx="4" fill="#f0d9b5" transform="rotate(-8 181 234)"/><path d="M152 216l30 20 30-24" stroke="#c9a06a" stroke-width="3" fill="none" transform="rotate(-8 181 234)"/><circle cx="181" cy="240" r="8" fill="#d4462f" transform="rotate(-8 181 234)"/></g>
+  <rect width="240" height="300" filter="url(#grain-spy-red.svg)" fill="#fff" opacity=".5" style="mix-blend-mode:overlay"/>
+</svg>

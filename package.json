@@ -1,0 +1,17 @@
+{
+  "name": "codenames-twisted",
+  "version": "1.0.0",
+  "description": "Juego tipo Codenames en español, por equipos rojo y azul, con operador rotativo y puntaje acumulado por rondas.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "art": "node scripts/gen-art.mjs"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}
