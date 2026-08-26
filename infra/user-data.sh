@@ -63,8 +63,10 @@ ${DOMAIN} {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
 	log {
-		output file /var/log/caddy.log
-		format console
+		output file /var/log/caddy/access.log {
+			roll_size 10MiB
+			roll_keep 3
+		}
 	}
 }
 CADDYFILE
@@ -79,6 +81,8 @@ Wants=network-online.target
 [Service]
 User=caddy
 Group=caddy
+LogsDirectory=caddy
+LogsDirectoryMode=0750
 ExecStart=/usr/local/bin/caddy run --environ --config /etc/caddy/Caddyfile
 ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
 Restart=on-failure
