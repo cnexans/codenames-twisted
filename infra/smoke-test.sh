@@ -6,19 +6,28 @@ DOMAIN="${1:-codenames.cnexans.com}"
 IP="${2:-$(pulumi stack output ip 2>/dev/null)}"
 ok(){ printf '✅ %s\n' "$1"; }; bad(){ printf '❌ %s\n' "$1"; }
 
+# curl imprime 000 si ni siquiera conecta; recortamos a 3 dígitos porque tras un
+# 101 la conexión queda abierta y curl añade su propio código al agotar el tiempo.
+probe(){ local out; out=$(curl -s -o /dev/null -w '%{http_code}' "$@" 2>/dev/null); echo "${out:0:3}"; }
+
 if [ -n "${IP:-}" ]; then
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "http://${IP}:3000/" || echo 000)
+  code=$(probe --max-time 8 "http://${IP}:3000/")
   [ "$code" = 200 ] && ok "app directa http://${IP}:3000 → 200" || bad "app directa → $code (¿sigue arrancando la instancia?)"
 fi
 
 resolved=$(dig +short "$DOMAIN" | tail -1)
 [ -n "$resolved" ] && ok "DNS ${DOMAIN} → ${resolved}" || bad "DNS ${DOMAIN} sin resolver (falta el registro A en Cloudflare)"
 
-code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "https://${DOMAIN}/" || echo 000)
+code=$(probe --max-time 12 "https://${DOMAIN}/")
 [ "$code" = 200 ] && ok "https://${DOMAIN} → 200 (certificado válido)" || bad "https://${DOMAIN} → $code (Caddy aún pidiendo el certificado o DNS sin propagar)"
 
-# Handshake de WebSocket (101 Switching Protocols)
-ws=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 \
+# Handshake de WebSocket (101 Switching Protocols).
+# --http1.1 es obligatorio: sobre HTTP/2 curl descarta las cabeceras de Upgrade
+# y la petición llega al servidor como un GET normal, que responde 404.
+ws=$(probe --max-time 6 --http1.1 \
   -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" \
-  -H "Sec-WebSocket-Key: $(head -c16 /dev/urandom | base64)" "https://${DOMAIN}/ws" || echo 000)
-[ "$ws" = 101 ] && ok "WebSocket /ws → 101" || bad "WebSocket /ws → $ws"
+  -H "Sec-WebSocket-Key: $(head -c16 /dev/urandom | base64)" "https://${DOMAIN}/ws")
+[ "$ws" = 101 ] && ok "WebSocket wss://${DOMAIN}/ws → 101" || bad "WebSocket /ws → $ws"
+
+echo
+echo "Partida completa de prueba:  node test/flow.mjs wss://${DOMAIN}/ws"

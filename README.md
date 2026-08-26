@@ -1,5 +1,7 @@
 # 🕵️ Nombres Clave
 
+**En vivo: https://codenames.cnexans.com**
+
 Juego de palabras por equipos (rojo vs. azul) al estilo *Codenames*, en español y en tiempo real.
 Cada ronda cambian las 25 palabras **y** el operador de cada equipo, y los puntos se acumulan
 hasta el final de la partida.
@@ -34,7 +36,12 @@ Así una ronda perdida por poco sigue sumando, y el marcador se mantiene interes
 ```bash
 npm install
 npm start           # http://localhost:3000
+npm test            # prueba las reglas contra un servidor en marcha
 ```
+
+`npm test` levanta cuatro jugadores por WebSocket y juega dos rondas completas
+(pistas inválidas, transeúnte, asesino, rotación de operador, puntaje). También
+sirve contra el servidor desplegado: `node test/flow.mjs wss://codenames.cnexans.com/ws`.
 
 Para jugar desde otros dispositivos en la misma red, entra a `http://TU_IP_LOCAL:3000`.
 
@@ -131,6 +138,8 @@ Si prefieres automatizarlo:
 ```bash
 CLOUDFLARE_API_TOKEN=... ./cloudflare-dns.sh codenames.cnexans.com $(pulumi stack output ip)
 ```
+
+Comprobación de que todo quedó bien: `./smoke-test.sh` (DNS, certificado y handshake WebSocket).
 
 Mientras el DNS propaga, el juego ya responde en `http://<IP>:3000` (output `pruebaDirecta`).
 Ese puerto es solo para probar: ciérralo con `pulumi config set openTestPort false && pulumi up`.
