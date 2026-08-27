@@ -79,6 +79,32 @@ Escribe `spy-red.png`, `spy-blue.png`, `assassin.png` y `hero.png` en `public/im
 el `.png` y cae al `.svg` si no existe. *Nota:* al escribir esto la cuenta asociada a `OPENAI_API_KEY`
 devolvió `insufficient_quota` (sin créditos), por eso los SVG son los que se ven en el juego.
 
+## Ampliar el vocabulario
+
+El tablero usa 828 palabras revisadas a mano (`server/words.js`). Para referencia,
+el Codenames original trae **400** (200 cartas a doble cara), así que ya va sobrado.
+
+Si algún día quieres más, `scripts/build-words.mjs` propone candidatas cruzando dos
+fuentes públicas y gratuitas:
+
+```bash
+node scripts/build-words.mjs > scripts/candidatas.txt
+```
+
+- **Wiktionary en español**, categoría `ES:Sustantivos` (~73.000 palabras): dice qué
+  palabras *son sustantivos*. Se descarga paginada y queda en caché en `.cache/`
+  (el ritmo va limitado a propósito: la API responde 429 si aprietas).
+- **Frecuencias de OpenSubtitles** (`hermitdave/FrequencyWords`, 50.000 palabras):
+  dice cuáles se usan de verdad.
+
+El cruce importa. Una lista de frecuencias sola te mete artículos y verbos
+conjugados ("quizá", "deja", "escucha"); un diccionario general solo te mete
+palabras rarísimas. Y aun cruzándolas, el script descarta sufijos abstractos
+(-ción, -dad, -ismo…) porque una carta como ABSTRACCIÓN no da juego.
+
+Lo que sale son **candidatas, no un diccionario final**: la última criba conviene
+hacerla a ojo. Más palabras no es mejor si la mitad no sirve para dar pistas.
+
 ## Estructura
 
 ```
@@ -110,8 +136,8 @@ La salud del servidor se mide con una sonda aparte que manda *pings del propio
 protocolo WebSocket*: los contesta el bucle de eventos de Node, así que el retraso
 delata la saturación antes de que nadie note nada en la partida.
 
-Medido contra la instancia t2.micro en producción (agosto 2026, cliente en Ciudad
-de México, ~160 ms de ida y vuelta):
+Medido contra la instancia t2.micro en producción (agosto 2026, cliente doméstico
+en Buenos Aires, ~160 ms de ida y vuelta hasta us-east-1):
 
 | Escenario | Resultado |
 | --- | --- |
@@ -184,6 +210,53 @@ Comprobación de que todo quedó bien: `./smoke-test.sh` (DNS, certificado y han
 
 Mientras el DNS propaga, el juego ya responde en `http://<IP>:3000` (output `pruebaDirecta`).
 Ese puerto es solo para probar: ciérralo con `pulumi config set openTestPort false && pulumi up`.
+
+### Encender y apagar
+
+```bash
+cd infra
+./servidor.sh estado     # dónde está y con qué IP
+./servidor.sh off        # apagar: detiene el reloj de cómputo
+./servidor.sh on --wait  # encender y esperar a que el juego conteste
+```
+
+Apagado sigues pagando disco e IPv4 (~$4.3/mes) pero no las horas de EC2, así que
+el ahorro es de unos **$8.5/mes** si solo lo enciendes para jugar. La IP elástica no
+se suelta al apagar, o sea que el DNS de Cloudflare sigue apuntando bien al volver.
+Arrancar tarda ~75 s (systemd levanta la app y Caddy recupera el certificado del disco).
+
+Para automatizarlo desde **GitHub Actions**, el script usa la cadena de credenciales
+normal del AWS CLI, así que basta con configurar el rol y llamarlo:
+
+```yaml
+jobs:
+  apagar:
+    runs-on: ubuntu-latest
+    permissions: { id-token: write, contents: read }   # OIDC, sin llaves guardadas
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<CUENTA>:role/codenames-power
+          aws-region: us-east-1
+      - run: ./infra/servidor.sh off
+```
+
+El rol solo necesita esto (la condición por etiqueta evita tener que actualizar el
+ARN cada vez que `pulumi up` reemplaza la instancia):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow", "Action": "ec2:DescribeInstances", "Resource": "*" },
+    { "Effect": "Allow",
+      "Action": ["ec2:StartInstances", "ec2:StopInstances"],
+      "Resource": "*",
+      "Condition": { "StringEquals": { "aws:ResourceTag/App": "nombres-clave" } } }
+  ]
+}
+```
 
 ### Actualizar el juego
 

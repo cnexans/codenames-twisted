@@ -152,3 +152,4 @@ export const pruebaDirecta = pulumi.interpolate`http://${eip.publicIp}:3000`;
 export const consola = pulumi.interpolate`aws ssm start-session --target ${server.id} --region ${aws.config.region}`;
 export const logDeArranque = pulumi.interpolate`sudo tail -f /var/log/codenames-boot.log  (dentro de ${server.id})`;
 export const version = appHash;
+export const encenderApagar = "cd infra && ./servidor.sh [estado|on|off]";
