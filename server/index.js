@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,9 +24,9 @@ function getRoom(code) {
 }
 
 function broadcast(room) {
-  for (const [pid, ws] of room.sockets) {
+  for (const [token, ws] of room.sockets) {
     if (ws.readyState !== ws.OPEN) continue;
-    ws.send(JSON.stringify(G.stateFor(room, pid)));
+    ws.send(JSON.stringify(G.stateFor(room, token)));
   }
   pushLobby();
 }
@@ -83,7 +84,7 @@ const send = (ws, obj) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(ob
 const fail = (ws, msg) => send(ws, { t: 'error', msg });
 
 wss.on('connection', (ws) => {
-  const ctx = { room: null, playerId: null };
+  const ctx = { room: null, token: null };
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
 
@@ -97,9 +98,9 @@ wss.on('connection', (ws) => {
     lobbySubs.delete(ws);
     const room = ctx.room;
     if (!room) return;
-    if (room.sockets.get(ctx.playerId) === ws) {
-      room.sockets.delete(ctx.playerId);
-      const p = room.players.find((x) => x.id === ctx.playerId);
+    if (room.sockets.get(ctx.token) === ws) {
+      room.sockets.delete(ctx.token);
+      const p = G.byToken(room, ctx.token);
       if (p) p.connected = false;
       broadcast(room);
     }
@@ -118,35 +119,38 @@ function handle(ws, ctx, m) {
 
   // --- Entrada ---
   if (m.t === 'create' || m.t === 'join') {
-    const playerId = String(m.playerId || '').slice(0, 40) || Math.random().toString(36).slice(2, 12);
+    // El token que trae el cliente solo vale para VOLVER a una sesión existente.
+    // Si no corresponde a nadie, el servidor emite uno nuevo e imposible de adivinar.
+    const claimed = String(m.token || '').slice(0, 64);
     const name = String(m.name || '').trim().slice(0, 18) || 'Agente';
     let room;
     if (m.t === 'create') {
       let code;
       do { code = G.makeCode(); } while (rooms.has(code));
-      room = G.createRoom(code, playerId);
+      room = G.createRoom(code, null);
       room.sockets = new Map();
       rooms.set(code, room);
     } else {
       room = getRoom(m.code);
       if (!room) return fail(ws, 'Esa sala no existe');
-      const known = room.players.some((p) => p.id === playerId);
+      const known = claimed && G.byToken(room, claimed);
       if (!known && room.players.length >= 20) return fail(ws, 'La sala está llena');
     }
-    const prev = room.sockets.get(playerId);
+    const token = (claimed && G.byToken(room, claimed)) ? claimed : crypto.randomUUID();
+    const prev = room.sockets.get(token);
     if (prev && prev !== ws && prev.readyState === prev.OPEN) prev.close(4001, 'sesion-reemplazada');
     lobbySubs.delete(ws);
     ctx.room = room;
-    ctx.playerId = playerId;
-    G.addPlayer(room, { id: playerId, name });
-    room.sockets.set(playerId, ws);
-    send(ws, { t: 'joined', code: room.code, playerId });
+    ctx.token = token;
+    G.addPlayer(room, { token, name });
+    room.sockets.set(token, ws);
+    send(ws, { t: 'joined', code: room.code, token });
     return broadcast(room);
   }
 
   const room = ctx.room;
   if (!room) return fail(ws, 'No estás en una sala');
-  const me = room.players.find((p) => p.id === ctx.playerId);
+  const me = G.byToken(room, ctx.token);
   if (!me) return fail(ws, 'Jugador desconocido');
   const isHost = room.hostId === me.id;
 

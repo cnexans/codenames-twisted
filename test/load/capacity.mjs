@@ -67,10 +67,10 @@ async function abrirSala(idx) {
     room.clients.push(w);
   });
   const host = room.clients[0];
-  send(host, { t: 'create', name: `S${idx}J0`, playerId: `S${idx}P0` });
+  send(host, { t: 'create', name: `S${idx}J0` });
   await untilTrue(() => host.code, `sala ${idx} creada`);
   for (let i = 1; i < SIZE; i++) {
-    send(room.clients[i], { t: 'join', code: host.code, name: `S${idx}J${i}`, playerId: `S${idx}P${i}` });
+    send(room.clients[i], { t: 'join', code: host.code, name: `S${idx}J${i}` });
   }
   await untilTrue(() => room.clients.every((w) => w.last?.you), `sala ${idx} completa`);
   room.clients.forEach((w, i) => send(w, { t: 'team', team: i % 2 ? 'blue' : 'red' }));

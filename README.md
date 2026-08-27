@@ -117,6 +117,23 @@ public/
 scripts/gen-art.mjs   generación opcional de ilustraciones
 ```
 
+## Seguridad del juego
+
+Lo único que hay que proteger aquí es la clave del tablero, y se protege en el
+servidor: `stateFor()` arma un estado distinto por jugador y el color viaja como
+`null` para quien no es operador. No es que la interfaz lo tape — el dato no sale
+del servidor, así que mirar el tráfico o la consola no revela nada.
+
+Cada jugador tiene **dos identificadores**: un `token` secreto (lo emite el servidor,
+sirve para volver a tu sitio tras recargar y nunca se difunde) y un `id` público que
+viaja en el estado para pintar equipos y roles. Antes había uno solo y se difundía:
+cualquiera podía reconectarse con el identificador del operador y quedarse con su
+vista del tablero. `npm test` incluye la regresión de ese caso.
+
+Lo que **no** hay, y conviene saberlo: no hay cuentas ni contraseñas. Quien tenga el
+código de sala entra, y las salas abiertas se listan en la portada. Para jugar entre
+amigos está bien; no metas nada sensible en los nombres.
+
 ## Detalles útiles
 
 - **Reconexión**: si recargas o se cae el wifi, vuelves a tu sitio con tu mismo rol (el `playerId`
