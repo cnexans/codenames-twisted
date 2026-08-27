@@ -25,6 +25,8 @@ export function createRoom(code, hostId) {
     history: [],
     log: [],
     usedWords: new Set(),
+    // Elección manual del operador para la PRÓXIMA ronda (null = rotación automática).
+    nextSpymaster: { red: null, blue: null },
   };
 }
 
@@ -70,11 +72,31 @@ export function shuffleTeams(room) {
   });
 }
 
-/** Operador (spymaster) de la ronda: rota por orden de llegada dentro del equipo. */
+/**
+ * Operador de la ronda. Por defecto rota por orden de llegada dentro del equipo;
+ * si el equipo eligió a alguien a mano para la próxima ronda, manda esa elección
+ * (siempre que siga en el equipo y conectado).
+ */
 export function spymasterFor(room, team, round = room.round) {
   const members = teamMembers(room, team);
   if (!members.length) return null;
+  const elegido = members.find((p) => p.id === room.nextSpymaster?.[team] && p.connected);
+  if (elegido) return elegido;
   return members[(Math.max(1, round) - 1) % members.length];
+}
+
+/** Elige a dedo quién será el operador de la próxima ronda. */
+export function pickSpymaster(room, actor, team, playerId) {
+  if (room.phase === 'playing') throw new Error('El operador se elige entre rondas, no en plena partida');
+  if (team !== 'red' && team !== 'blue') throw new Error('Equipo inválido');
+  if (actor.team !== team && room.hostId !== actor.id) {
+    throw new Error('Solo ese equipo (o el anfitrión) elige a su operador');
+  }
+  const elegido = teamMembers(room, team).find((p) => p.id === playerId);
+  if (!elegido) throw new Error('Esa persona no está en el equipo');
+  if (!elegido.connected) throw new Error('Esa persona está desconectada');
+  room.nextSpymaster[team] = elegido.id;
+  return elegido;
 }
 
 export function canStart(room) {
@@ -96,6 +118,8 @@ export function startRound(room) {
     const boss = spymasterFor(room, team);
     for (const p of teamMembers(room, team)) p.role = p.id === boss.id ? 'spymaster' : 'operative';
   }
+
+  room.nextSpymaster = { red: null, blue: null }; // la elección valía solo para esta ronda
 
   const starting = room.round % 2 === 1 ? 'red' : 'blue';
   const words = pickWords(BOARD_SIZE, room.usedWords);
@@ -248,6 +272,7 @@ export function resetGame(room) {
   room.history = [];
   room.log = [];
   room.usedWords = new Set();
+  room.nextSpymaster = { red: null, blue: null };
   for (const p of room.players) p.role = null;
 }
 
@@ -258,6 +283,14 @@ export function tick(room) {
     return true;
   }
   return false;
+}
+
+/** En partida manda el rol ya asignado; fuera de ella, quién sería en la próxima ronda. */
+function currentOrNextSpymaster(room, team) {
+  if (room.phase === 'playing') {
+    return teamMembers(room, team).find((p) => p.role === 'spymaster')?.id || null;
+  }
+  return spymasterFor(room, team, room.round + 1)?.id || null;
 }
 
 /** Estado personalizado: solo el operador (o al final de ronda) ve los colores. */
@@ -277,9 +310,10 @@ export function stateFor(room, playerId) {
     phase: room.phase,
     startError: room.phase === 'lobby' ? canStart(room) : null,
     nextSpymasters: {
-      red: spymasterFor(room, 'red', room.phase === 'playing' ? room.round : room.round + 1)?.id || null,
-      blue: spymasterFor(room, 'blue', room.phase === 'playing' ? room.round : room.round + 1)?.id || null,
+      red: currentOrNextSpymaster(room, 'red'),
+      blue: currentOrNextSpymaster(room, 'blue'),
     },
+    spymasterElegido: { ...room.nextSpymaster },
     roundResult: room.roundResult,
     history: room.history,
     log: room.log,
