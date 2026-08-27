@@ -52,10 +52,26 @@ function roomList() {
   return list.sort((a, b) => (a.phase === b.phase ? b.players - a.players : a.phase === 'lobby' ? -1 : 1));
 }
 
-function pushLobby() {
-  if (!lobbySubs.size) return;
+// La lista se recalcula sobre TODAS las salas, y broadcast() la dispara en cada
+// jugada de cualquier partida. Sin freno, N salas activas cuestan O(N) por jugada.
+const LOBBY_MS = 750;
+let lobbyTimer = null, lobbyDirty = false;
+
+function sendLobbyNow() {
   const msg = JSON.stringify({ t: 'roomList', rooms: roomList() });
   for (const ws of lobbySubs) if (ws.readyState === ws.OPEN) ws.send(msg);
+}
+
+function pushLobby() {
+  if (!lobbySubs.size) return;
+  if (lobbyTimer) { lobbyDirty = true; return; }
+  sendLobbyNow();
+  lobbyTimer = setTimeout(function tick() {
+    if (!lobbyDirty || !lobbySubs.size) { lobbyTimer = null; return; }
+    lobbyDirty = false;
+    sendLobbyNow();
+    lobbyTimer = setTimeout(tick, LOBBY_MS);
+  }, LOBBY_MS);
 }
 
 function fx(room, event, payload = {}) {
@@ -96,6 +112,9 @@ function handle(ws, ctx, m) {
     lobbySubs.add(ws);
     return send(ws, { t: 'roomList', rooms: roomList() });
   }
+
+  // Latido de la conexión: debe funcionar aunque todavía no estés en una sala.
+  if (m.t === 'ping') return send(ws, { t: 'pong' });
 
   // --- Entrada ---
   if (m.t === 'create' || m.t === 'join') {
@@ -187,8 +206,6 @@ function handle(ws, ctx, m) {
       if (!isHost) return fail(ws, 'Solo el anfitrión reinicia');
       G.resetGame(room);
       break;
-    case 'ping':
-      return send(ws, { t: 'pong' });
     default:
       return fail(ws, 'Acción desconocida');
   }

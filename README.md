@@ -99,6 +99,29 @@ scripts/gen-art.mjs   generación opcional de ilustraciones
 - **Temporizador opcional** por turno (60 s a 3 min); al agotarse, cambia el turno.
 - Las palabras no se repiten entre rondas de una misma partida.
 
+## Pruebas de carga
+
+```bash
+node test/load/room20.mjs   wss://codenames.cnexans.com/ws 20 2      # una sala llena jugando
+node test/load/capacity.mjs wss://codenames.cnexans.com/ws 16 9 20 108   # rampa de salas
+```
+
+La salud del servidor se mide con una sonda aparte que manda *pings del propio
+protocolo WebSocket*: los contesta el bucle de eventos de Node, así que el retraso
+delata la saturación antes de que nadie note nada en la partida.
+
+Medido contra la instancia t2.micro en producción (agosto 2026, cliente en Ciudad
+de México, ~160 ms de ida y vuelta):
+
+| Escenario | Resultado |
+| --- | --- |
+| 1 sala de 20 jugando | jugada visible para los 20 en **167 ms p50 / 176 ms p95** (red: 161 ms) |
+| 108 salas de 16 a la vez | **1.728 jugadores**, 75 jugadas/s, 7,1 MB/s, ping del servidor **sin moverse de 161 ms**, cero errores |
+
+La rampa se quedó sin tope antes que el servidor: el límite real está por encima
+de eso. El coste dominante es el tráfico, no la CPU: **~100 KB por jugada** en una
+sala de 16-20 personas, porque cada cambio reenvía el estado completo a cada jugador.
+
 ## Despliegue en AWS (capa gratuita) con Pulumi
 
 `infra/` levanta una EC2 **t2.micro** con Amazon Linux 2023, la app como servicio de systemd
