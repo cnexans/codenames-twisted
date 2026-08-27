@@ -128,15 +128,29 @@ sala de 16-20 personas, porque cada cambio reenvía el estado completo a cada ju
 y **Caddy** delante haciendo de proxy inverso con certificado de Let's Encrypt automático
 (los WebSockets pasan sin configuración extra).
 
-Lo que se crea y por qué sigue siendo gratis:
+### Cuánto cuesta
 
-| Recurso | Capa gratuita |
-| --- | --- |
-| EC2 t2.micro | 750 h/mes durante 12 meses |
-| EBS gp3 8 GB | de los 30 GB gratis |
-| IP elástica | gratis mientras esté asociada a una instancia encendida |
-| Bucket S3 (tarball de ~60 KB) | dentro de los 5 GB gratis |
-| Tráfico de salida | 100 GB/mes gratis |
+Ojo con la expresión "capa gratuita": los 750 h/mes de EC2 son la **capa gratuita de
+12 meses**, que se cuenta desde que se crea la cuenta de AWS. En una cuenta con más
+de un año, la instancia se paga a precio normal. Precios verificados en us-east-1
+(agosto 2026, consultados a la API de precios de AWS):
+
+| Recurso | Precio | Al mes |
+| --- | --- | --- |
+| EC2 t2.micro | $0.0116/h | **$8.47** |
+| IPv4 pública (la IP elástica) | $0.005/h | **$3.65** |
+| EBS gp3 8 GB | $0.08/GB-mes | **$0.64** |
+| Bucket S3 (tarball de ~60 KB) | — | ~$0.00 |
+| Tráfico de salida | 100 GB/mes gratis, luego $0.09/GB | **$0.00** |
+| | | **≈ $12.76/mes** |
+
+Sale más barato con Graviton (ARM): `pulumi config set instanceType t4g.micro` baja
+la instancia a $0.0084/h → **≈ $10.42/mes**. La infraestructura ya elige la AMI arm64
+sola, pero hay que cambiar la descarga de Caddy en `user-data.sh` de `linux_amd64`
+a `linux_arm64`.
+
+Con la capa gratuita de 12 meses vigente (cuenta nueva), todo lo de arriba sale $0
+salvo detalles menores.
 
 ### Pasos
 
