@@ -145,6 +145,14 @@ ok(a.last.game.turn === 'blue', 'la ronda 2 la empieza el otro equipo');
 const redBoss2 = bossOf(all, 'red'), blueBoss2 = bossOf(all, 'blue');
 ok(redBoss2.last.you.id !== redBoss.last.you.id, `el operador rojo rotó (${redBoss.last.you.name} → ${redBoss2.last.you.name})`);
 ok(blueBoss2.last.you.id !== blueBoss.last.you.id, `el operador azul rotó (${blueBoss.last.you.name} → ${blueBoss2.last.you.name})`);
+// El operador no puede cortar el turno de los suyos: sabe la clave y sería una
+// forma encubierta de dar pistas ("paren, la siguiente es el asesino"). El
+// anfitrión sí puede saltar turnos, pero eso queda escrito en el registro.
+send(blueBoss2, { t: 'endTurn' });
+await wait(150);
+ok(blueBoss2.last.game.turn === 'blue' && /No es tu turno/.test(blueBoss2.lastError || ''),
+   'el operador no puede terminar el turno de su equipo');
+
 const antes = new Set(key.map((x) => x.word));
 ok(redBoss2.last.game.board.every((x) => !antes.has(x.word)), 'las 25 palabras de la ronda 2 son nuevas');
 

@@ -196,7 +196,9 @@ function handle(ws, ctx, m) {
     }
     case 'endTurn': {
       if (room.phase !== 'playing') return fail(ws, 'La ronda no está activa');
-      const mine = me.team === room.game.turn && room.game.clue;
+      // Solo los espías de campo cortan su turno: el operador conoce la clave, así
+      // que dejarle parar la ronda sería darle una vía extra para dirigir la jugada.
+      const mine = me.role === 'operative' && me.team === room.game.turn && room.game.clue;
       if (!mine && !isHost) return fail(ws, 'No es tu turno');
       G.endTurn(room, mine ? null : 'host'); // el anfitrión rescata un turno atascado
       break;

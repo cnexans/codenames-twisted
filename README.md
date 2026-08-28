@@ -18,7 +18,11 @@ hasta el final de la partida.
    los colores del tablero. La rotación sigue el orden de llegada al equipo, así que en una
    partida de 5 rondas con 3 personas por equipo, todas terminan siendo operador.
 4. El operador da una pista de **una sola palabra** + un número (o ∞): cuántas cartas se relacionan.
-5. Su equipo tiene ese número de intentos **+1**. Cada carta se destapa con dos clics (el segundo confirma).
+5. Su equipo tiene ese número de intentos **+1**, y son del **equipo entero, no de cada
+   persona**: como en el juego de mesa, se discute en voz alta y cualquiera de los espías
+   de campo puede destapar cualquier carta, en el orden que sea. El primero que confirma,
+   manda. Cada carta se destapa con dos clics (el segundo confirma, para evitar resbalones).
+   El operador no puede destapar ni cortar el turno de los suyos: sabe la clave.
    - Carta de tu color → sigue el turno.
    - Transeúnte (beige) → termina el turno.
    - Carta del rival → se la regalas y termina el turno.
