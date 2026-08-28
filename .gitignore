@@ -4,3 +4,6 @@ node_modules/
 *.log
 test-results/
 playwright-report/
+
+# volcados del estado de Pulumi (contienen ids y metadatos de la infraestructura)
+infra/estado-prod-*.json
