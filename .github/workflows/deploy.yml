@@ -1,0 +1,70 @@
+name: Desplegar a producción
+
+# Cada merge a main despliega. Ojo: si cambió la app, Pulumi reemplaza la
+# instancia y el juego queda ~75 s sin responder mientras arranca la nueva.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: despliegue-produccion
+  cancel-in-progress: false   # nunca cortar un despliegue a medias
+
+permissions:
+  id-token: write   # pedir credenciales temporales a AWS por OIDC
+  contents: read
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Reglas del juego
+        run: |
+          npm ci
+          node server/index.js &
+          for i in $(seq 1 20); do curl -sf -o /dev/null http://localhost:3000/ && break; sleep 1; done
+          npm test
+
+      # Sin llaves guardadas: GitHub prueba su identidad y AWS entrega
+      # credenciales que caducan al terminar el trabajo.
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: us-east-1
+
+      - uses: pulumi/actions@v6
+        with:
+          command: up
+          stack-name: prod
+          work-dir: infra
+          cloud-url: ${{ vars.PULUMI_STATE_URL }}
+        env:
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+
+      - name: Esperar a que la versión nueva conteste
+        run: |
+          for i in $(seq 1 40); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://codenames.cnexans.com/)" = 200 ] && exit 0
+            sleep 10
+          done
+          echo "El sitio no respondió tras 400 s"; exit 1
+
+      # El despliegue no está bien hasta que una partida real funciona.
+      - name: Partida de prueba contra producción
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-fallos
+          path: test-results/
+          retention-days: 7
