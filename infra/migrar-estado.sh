@@ -15,6 +15,9 @@ if ! aws sts get-caller-identity >/dev/null 2>&1; then
   unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
   aws sts get-caller-identity >/dev/null 2>&1 || { echo "Sin credenciales de AWS: corre 'aws login'." >&2; exit 1; }
 fi
+# Pulumi no entiende la sesión de 'aws login': hay que darle credenciales
+# temporales explícitas para que pueda leer y escribir el estado en S3.
+eval "$(aws configure export-credentials --format env)"
 CUENTA=$(aws sts get-caller-identity --query Account --output text)
 BUCKET="codenames-pulumi-state-${CUENTA}"
 ROL_ARN="arn:aws:iam::${CUENTA}:role/codenames-deploy"
