@@ -7,3 +7,6 @@ playwright-report/
 
 # volcados del estado de Pulumi (contienen ids y metadatos de la infraestructura)
 infra/estado-prod-*.json
+
+# frase de paso del estado de Pulumi: guárdala en tu gestor de contraseñas
+infra/.pulumi-passphrase
