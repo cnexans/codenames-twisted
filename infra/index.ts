@@ -45,8 +45,37 @@ for (const imprescindible of ["package.json", "package-lock.json", "server/index
     throw new Error(`El paquete de la app no incluye ${imprescindible}; revisa el empaquetado`);
   }
 }
-// Hash del contenido: si la app cambia, la instancia se reemplaza con la versión nueva.
-const appHash = crypto.createHash("sha256").update(fs.readFileSync(tarball)).digest("hex").slice(0, 16);
+/**
+ * Huella de lo que de verdad corre en el servidor. Se calcula sobre `server/`,
+ * `public/` y las dependencias de PRODUCCIÓN con su versión bloqueada — no sobre
+ * el tarball entero.
+ *
+ * El motivo: el paquete incluye package.json y package-lock.json (los necesita
+ * `npm ci`), así que hashearlo completo hacía que tocar una devDependency o un
+ * script de test cambiara la huella, cambiara el user-data y **reemplazara la
+ * instancia de producción**. Con despliegue automático en cada merge, eso es un
+ * corte de servicio por un cambio que no toca al servidor.
+ */
+function huellaDeLaApp(): string {
+  const h = crypto.createHash("sha256");
+  const paquete = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const lock = JSON.parse(fs.readFileSync(path.join(root, "package-lock.json"), "utf8"));
+
+  for (const dep of Object.keys(paquete.dependencies ?? {}).sort()) {
+    h.update(`${dep}@${lock.packages?.[`node_modules/${dep}`]?.version ?? "?"}\n`);
+  }
+  const recorrer = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const completo = path.join(dir, e.name);
+      return e.isDirectory() ? recorrer(completo) : [completo];
+    });
+  for (const archivo of ["server", "public"].flatMap((d) => recorrer(path.join(root, d))).sort()) {
+    h.update(path.relative(root, archivo));
+    h.update(fs.readFileSync(archivo));
+  }
+  return h.digest("hex").slice(0, 16);
+}
+const appHash = huellaDeLaApp();
 
 const bucket = new aws.s3.BucketV2("codenames-artifacts", { forceDestroy: true });
 new aws.s3.BucketPublicAccessBlock("codenames-artifacts-private", {
