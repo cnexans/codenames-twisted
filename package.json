@@ -8,7 +8,8 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "art": "node scripts/gen-art.mjs",
-    "test": "node test/flow.mjs"
+    "test": "node test/flow.mjs",
+    "e2e": "playwright test"
   },
   "engines": {
     "node": ">=18"
@@ -16,5 +17,8 @@
   "dependencies": {
     "express": "^4.19.2",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }

@@ -125,6 +125,26 @@ scripts/gen-art.mjs   generación opcional de ilustraciones
 - **Temporizador opcional** por turno (60 s a 3 min); al agotarse, cambia el turno.
 - Las palabras no se repiten entre rondas de una misma partida.
 
+## Prueba de extremo a extremo (Playwright)
+
+Cuatro navegadores de verdad jugando una partida contra el servidor desplegado:
+
+```bash
+npx playwright install chromium   # solo la primera vez
+npm run e2e                       # contra codenames.cnexans.com
+E2E_URL=http://localhost:3000 npm run e2e
+```
+
+No comprueba "que la página carga", sino lo que solo se ve jugando entre varios:
+
+- el operador ve las 25 cartas pintadas y **los demás ninguna**;
+- la pista aparece en las cuatro pantallas;
+- una carta destapada por un espía se ve destapada en las cuatro;
+- destapar al asesino cierra la ronda y **entonces sí** todos ven el mapa completo;
+- al pasar de ronda, el operador rota y las 25 palabras son nuevas.
+
+Cada ejecución crea una sala real en producción; se limpia sola al quedarse vacía.
+
 ## Pruebas de carga
 
 ```bash
