@@ -17,6 +17,8 @@ id -u codenames &>/dev/null || useradd --system --home /opt/codenames --shell /s
 rm -rf /opt/codenames && mkdir -p /opt/codenames
 aws s3 cp "s3://${APP_BUCKET}/${APP_KEY}" /tmp/app.tgz
 tar xzf /tmp/app.tgz -C /opt/codenames
+# Si el paquete llegó incompleto, mejor fallar aquí y con un mensaje claro.
+test -f /opt/codenames/package-lock.json || { echo "❌ el paquete de la app llegó vacío"; exit 1; }
 cd /opt/codenames
 npm ci --omit=dev --no-audit --no-fund
 chown -R codenames:codenames /opt/codenames

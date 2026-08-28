@@ -28,13 +28,22 @@ const buildDir = path.join(__dirname, ".build");
 const tarball = path.join(buildDir, "app.tgz");
 fs.mkdirSync(buildDir, { recursive: true });
 
-const files = "package.json package-lock.json server public";
-const tarCmd = (extra: string) =>
-  `COPYFILE_DISABLE=1 tar ${extra} -cf - -C '${root}' ${files} | gzip -n > '${tarball}'`;
-try {
-  execSync(tarCmd("--no-mac-metadata"), { shell: "/bin/bash", stdio: "pipe" }); // bsdtar (macOS)
-} catch {
-  execSync(tarCmd(""), { shell: "/bin/bash", stdio: "pipe" }); // GNU tar
+const files = ["package.json", "package-lock.json", "server", "public"];
+// --no-mac-metadata solo existe en el tar de macOS; GNU tar (Linux, CI) lo rechaza.
+// Y como el comando termina en una tubería, el fallo de tar NO se nota sin pipefail:
+// se generaba un paquete vacío y la instancia arrancaba sin aplicación.
+const extra = process.platform === "darwin" ? "--no-mac-metadata" : "";
+execSync(
+  `set -o pipefail; COPYFILE_DISABLE=1 tar ${extra} -cf - -C '${root}' ${files.join(" ")} | gzip -n > '${tarball}'`,
+  { shell: "/bin/bash", stdio: "pipe" },
+);
+// Comprobar el contenido: un paquete incompleto rompe la instancia en el arranque,
+// que es un sitio malísimo para enterarse.
+const contenido = execSync(`tar tzf '${tarball}'`, { encoding: "utf8" });
+for (const imprescindible of ["package.json", "package-lock.json", "server/index.js", "public/index.html"]) {
+  if (!contenido.includes(imprescindible)) {
+    throw new Error(`El paquete de la app no incluye ${imprescindible}; revisa el empaquetado`);
+  }
 }
 // Hash del contenido: si la app cambia, la instancia se reemplaza con la versión nueva.
 const appHash = crypto.createHash("sha256").update(fs.readFileSync(tarball)).digest("hex").slice(0, 16);
