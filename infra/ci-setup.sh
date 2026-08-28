@@ -36,6 +36,12 @@ else
 fi
 
 # ── 2. rol que solo puede asumir este repo desde main ────────────
+# GitHub puede emitir el claim 'sub' con IDs numéricos inmutables
+# (repo:usuario@123/repo@456), para que renombrar el repositorio no traspase la
+# confianza a otro. No lo suponemos: se lo preguntamos a la API.
+PREFIJO=$(gh api "/repos/${REPO}/actions/oidc/customization/sub" -q .sub_claim_prefix 2>/dev/null || true)
+[ -n "$PREFIJO" ] && [ "$PREFIJO" != "null" ] || PREFIJO="repo:${REPO}"
+echo "  claim de GitHub: ${PREFIJO}:ref:refs/heads/main"
 CONFIANZA=$(cat <<JSON
 {"Version":"2012-10-17","Statement":[{
   "Effect":"Allow",
@@ -43,7 +49,7 @@ CONFIANZA=$(cat <<JSON
   "Action":"sts:AssumeRoleWithWebIdentity",
   "Condition":{
     "StringEquals":{"token.actions.githubusercontent.com:aud":"sts.amazonaws.com"},
-    "StringLike":{"token.actions.githubusercontent.com:sub":"repo:${REPO}:ref:refs/heads/main"}
+    "StringLike":{"token.actions.githubusercontent.com:sub":"${PREFIJO}:ref:refs/heads/main"}
   }}]}
 JSON
 )
