@@ -228,8 +228,16 @@ CLOUDFLARE_API_TOKEN=... ./cloudflare-dns.sh codenames.cnexans.com $(pulumi stac
 
 Comprobación de que todo quedó bien: `./smoke-test.sh` (DNS, certificado y handshake WebSocket).
 
-Mientras el DNS propaga, el juego ya responde en `http://<IP>:3000` (output `pruebaDirecta`).
-Ese puerto es solo para probar: ciérralo con `pulumi config set openTestPort false && pulumi up`.
+Mientras el DNS propaga, el juego puede responder en `http://<IP>:3000` si activas
+`openTestPort`. Está **desactivado a propósito**: ese puerto se salta a Caddy, o sea
+que expone el juego sin cifrar. Úsalo solo para depurar y vuelve a cerrarlo:
+
+```bash
+pulumi config set openTestPort true && pulumi up    # abrir temporalmente
+pulumi config set openTestPort false && pulumi up   # cerrar
+```
+
+Caddy redirige `http://` a `https://` con un 308 automáticamente; no hace falta configurarlo.
 
 ### Encender y apagar
 

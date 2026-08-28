@@ -10,10 +10,18 @@ ok(){ printf '✅ %s\n' "$1"; }; bad(){ printf '❌ %s\n' "$1"; }
 # 101 la conexión queda abierta y curl añade su propio código al agotar el tiempo.
 probe(){ local out; out=$(curl -s -o /dev/null -w '%{http_code}' "$@" 2>/dev/null); echo "${out:0:3}"; }
 
+# El puerto del servidor de juego NO debe ser accesible desde fuera: todo el
+# tráfico tiene que pasar por Caddy, que es quien pone el TLS.
 if [ -n "${IP:-}" ]; then
-  code=$(probe --max-time 8 "http://${IP}:3000/")
-  [ "$code" = 200 ] && ok "app directa http://${IP}:3000 → 200" || bad "app directa → $code (¿sigue arrancando la instancia?)"
+  code=$(probe --max-time 6 "http://${IP}:3000/")
+  [ "$code" = 000 ] && ok "puerto 3000 cerrado a internet" || bad "puerto 3000 expuesto (respondió $code): el tráfico puede ir sin cifrar"
 fi
+
+redir=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "http://${DOMAIN}/" || true)
+case "$redir" in
+  30*"https://${DOMAIN}"*) ok "http → https (${redir%% *})" ;;
+  *) bad "sin redirección a https: $redir" ;;
+esac
 
 resolved=$(dig +short "$DOMAIN" | tail -1)
 [ -n "$resolved" ] && ok "DNS ${DOMAIN} → ${resolved}" || bad "DNS ${DOMAIN} sin resolver (falta el registro A en Cloudflare)"
