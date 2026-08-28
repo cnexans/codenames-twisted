@@ -39,6 +39,11 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
           aws-region: us-east-1
 
+      # El programa de Pulumi es TypeScript: necesita su propio node_modules.
+      - name: Dependencias de la infraestructura
+        working-directory: infra
+        run: npm ci
+
       - uses: pulumi/actions@v6
         with:
           command: up
