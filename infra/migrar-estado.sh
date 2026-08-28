@@ -39,6 +39,10 @@ export PULUMI_CONFIG_PASSPHRASE="$FRASE"
 pulumi login "s3://${BUCKET}"
 pulumi stack init prod --secrets-provider passphrase
 pulumi stack import --file "$COPIA"
+# El estado exportado trae anotado el proveedor de secretos de Pulumi Cloud y la
+# importación lo conserva: hay que cambiarlo o el CI fallará pidiendo un token
+# de api.pulumi.com que ya no queremos tener.
+pulumi stack change-secrets-provider passphrase
 
 echo "▶ 4/5 · comprobar que Pulumi no ve diferencias"
 if pulumi preview --diff 2>&1 | tee /tmp/preview.txt | tail -20; then
