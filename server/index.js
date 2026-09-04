@@ -166,6 +166,12 @@ function handle(ws, ctx, m) {
     case 'team':
       G.setTeam(room, me, m.team);
       break;
+    case 'spymaster': {
+      const elegido = G.pickSpymaster(room, me, m.team, m.playerId);
+      room.log.push({ kind: 'pick', team: m.team, round: room.round,
+        text: `${elegido.name} será el operador ${m.team === 'red' ? 'ROJO' : 'AZUL'}`, at: Date.now() });
+      break;
+    }
     case 'shuffle':
       if (!isHost) return fail(ws, 'Solo el anfitrión puede mezclar equipos');
       G.shuffleTeams(room);

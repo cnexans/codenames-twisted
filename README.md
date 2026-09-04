@@ -15,8 +15,11 @@ hasta el final de la partida.
    Mientras se arman los equipos cualquiera puede cambiarse el nombre desde el panel
    *Tu agente* (útil si entraste sin ponerlo); en plena ronda queda bloqueado.
 3. En cada ronda, **un integrante distinto de cada equipo es el operador**: solo esa persona ve
-   los colores del tablero. La rotación sigue el orden de llegada al equipo, así que en una
-   partida de 5 rondas con 3 personas por equipo, todas terminan siendo operador.
+   los colores del tablero. Por defecto la rotación sigue el orden de llegada al equipo, así que
+   en una partida de 5 rondas con 3 personas por equipo, todas terminan siendo operador.
+   Si prefieren elegirlo, el selector **Operador ronda N** (en la sala de espera y en el resumen
+   de cada ronda) permite designar a quien sea: lo cambia cualquiera de ese equipo o el anfitrión,
+   vale solo para la ronda siguiente y después se retoma la rotación normal.
 4. El operador da una pista de **una sola palabra** + un número (o ∞): cuántas cartas se relacionan.
 5. Su equipo tiene ese número de intentos **+1**, y son del **equipo entero, no de cada
    persona**: como en el juego de mesa, se discute en voz alta y cualquiera de los espías

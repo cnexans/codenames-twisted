@@ -57,6 +57,7 @@
       <div class="team-card red">
         <div class="team-head"><h2>Equipo Rojo</h2><img class="team-spy" src="/img/spy-red.png" alt="" onerror="this.onerror=null;this.src=this.src.replace('.png','.svg')" /></div>
         <ul id="lobby-red" class="roster"></ul>
+        <div id="pick-red" class="pick-slot"></div>
         <button class="btn btn-red" data-team="red">Unirme al rojo</button>
       </div>
       <div class="team-card neutral">
@@ -67,6 +68,7 @@
       <div class="team-card blue">
         <div class="team-head"><h2>Equipo Azul</h2><img class="team-spy" src="/img/spy-blue.png" alt="" onerror="this.onerror=null;this.src=this.src.replace('.png','.svg')" /></div>
         <ul id="lobby-blue" class="roster"></ul>
+        <div id="pick-blue" class="pick-slot"></div>
         <button class="btn btn-blue" data-team="blue">Unirme al azul</button>
       </div>
     </div>
@@ -156,6 +158,7 @@
     <h2 id="modal-title">Fin de ronda</h2>
     <p id="modal-sub" class="modal-sub"></p>
     <div id="modal-points" class="modal-points"></div>
+    <div id="modal-pick" class="modal-pick"></div>
     <table id="modal-history" class="history"></table>
     <div class="modal-actions">
       <button id="btn-next" class="btn btn-primary">Siguiente ronda</button>

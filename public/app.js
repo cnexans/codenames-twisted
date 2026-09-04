@@ -144,8 +144,13 @@ function renderLobby() {
   const groups = { red: $('#lobby-red'), blue: $('#lobby-blue'), none: $('#lobby-none') };
   Object.values(groups).forEach((u) => (u.innerHTML = ''));
   for (const p of state.players) {
-    const li = playerChip(p, state.nextSpymasters[p.team] === p.id ? 'operador ronda 1' : null);
+    const li = playerChip(p, state.nextSpymasters[p.team] === p.id ? `operador ronda ${state.round + 1}` : null);
     groups[p.team || 'none'].appendChild(li);
+  }
+  for (const t of ['red', 'blue']) {
+    const slot = $(`#pick-${t}`);
+    slot.innerHTML = '';
+    slot.append(spymasterPicker(t));
   }
   const host = state.hostId === state.you.id;
   $('#set-rounds').value = state.settings.rounds;
@@ -154,6 +159,32 @@ function renderLobby() {
   $('#btn-start').disabled = !host || !!state.startError;
   $('#lobby-warn').textContent = state.startError || '';
   $('#host-note').textContent = host ? 'Eres el anfitrión: tú controlas la configuración y el inicio.' : 'El anfitrión inicia la partida.';
+}
+
+/**
+ * Selector del operador de la próxima ronda. Puede tocarlo quien esté en ese
+ * equipo (o el anfitrión); el resto solo ve quién será.
+ */
+function spymasterPicker(team, { conEquipo = false } = {}) {
+  const ronda = state.round + 1;
+  const miembros = state.players.filter((p) => p.team === team && p.connected);
+  const wrap = el('label', `pick ${team}`);
+  // En la sala de espera cada selector vive dentro de su tarjeta de equipo; en el
+  // modal van uno al lado del otro, así que ahí sí hace falta decir de quién es.
+  wrap.append(el('span', '', conEquipo ? `Operador ${TEAM_ES[team]} · ronda ${ronda}` : `Operador ronda ${ronda}`));
+  const sel = el('select');
+  if (!miembros.length) sel.append(new Option('—', ''));
+  for (const p of miembros) {
+    const o = new Option(p.name, p.id);
+    if (p.id === state.nextSpymasters[team]) o.selected = true;
+    sel.append(o);
+  }
+  const puedo = state.you.team === team || state.hostId === state.you.id;
+  sel.disabled = !puedo || !miembros.length;
+  sel.title = puedo ? 'Elige quién dará las pistas la próxima ronda' : `Lo elige el equipo ${TEAM_ES[team]}`;
+  sel.onchange = () => send({ t: 'spymaster', team, playerId: sel.value });
+  wrap.append(sel);
+  return wrap;
 }
 
 function playerChip(p, extra) {
@@ -319,6 +350,12 @@ function renderOverlay() {
     box.append(el('div', 't', `Equipo ${TEAM_ES[t]}`), el('div', 'v', String(state.scores[t])));
     box.append(el('div', 'd', r && state.phase === 'roundEnd' ? `+${r.points[t]} esta ronda` : 'puntos totales'));
     pts.append(box);
+  }
+
+  // Entre ronda y ronda se puede cambiar quién dará las pistas.
+  const pick = $('#modal-pick'); pick.innerHTML = '';
+  if (state.phase === 'roundEnd' && state.round < state.settings.rounds) {
+    pick.append(spymasterPicker('red', { conEquipo: true }), spymasterPicker('blue', { conEquipo: true }));
   }
 
   const tbl = $('#modal-history'); tbl.innerHTML = '';

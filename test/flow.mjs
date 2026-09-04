@@ -138,12 +138,26 @@ await until(a, (s) => s.phase === 'roundEnd', 'fin de ronda');
 ok(a.last.roundResult.winner === 'red' && a.last.roundResult.reason === 'assassin', 'el asesino da la ronda al rival');
 ok(a.last.scores.red >= 3, `puntos de la ronda: ${JSON.stringify(a.last.scores)}`);
 
-// ── ronda 2: rota el operador y cambian las palabras ────────────
+// ── elegir a dedo el operador de la próxima ronda ───────────────
+// Se elige a quien la rotación NO tocaría: el operador que acaba de serlo.
+// Si en la ronda 2 vuelve a salir, la elección manual mandó de verdad.
+const rojos = a.last.players.filter((p) => p.team === 'red');
+const aDedo = rojos.find((p) => p.id === redBoss.last.you.id);
+const porRotacion = rojos.find((p) => p.id !== aDedo.id);
+send(a, { t: 'spymaster', team: 'red', playerId: aDedo.id });
+await until(a, (s) => s.nextSpymasters.red === aDedo.id, 'operador elegido');
+ok(true, `se elige a ${aDedo.name}, que repetiría (por rotación tocaba ${porRotacion.name})`);
+send(c, { t: 'spymaster', team: 'red', playerId: rojos[0].id });
+await wait(150);
+ok(/ese equipo/.test(c.lastError || ''), 'alguien del otro equipo no puede elegirlo');
+
+// ── ronda 2: cambian las palabras ───────────────────────────────
 send(a, { t: 'next' });
 await until(a, (s) => s.phase === 'playing' && s.round === 2, 'ronda 2');
 ok(a.last.game.turn === 'blue', 'la ronda 2 la empieza el otro equipo');
 const redBoss2 = bossOf(all, 'red'), blueBoss2 = bossOf(all, 'blue');
-ok(redBoss2.last.you.id !== redBoss.last.you.id, `el operador rojo rotó (${redBoss.last.you.name} → ${redBoss2.last.you.name})`);
+ok(redBoss2.last.you.id === aDedo.id && redBoss2.last.you.id !== porRotacion.id,
+   `manda la elección manual: repite ${redBoss2.last.you.name} en vez de ${porRotacion.name}`);
 ok(blueBoss2.last.you.id !== blueBoss.last.you.id, `el operador azul rotó (${blueBoss.last.you.name} → ${blueBoss2.last.you.name})`);
 // El operador no puede cortar el turno de los suyos: sabe la clave y sería una
 // forma encubierta de dar pistas ("paren, la siguiente es el asesino"). El
