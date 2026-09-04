@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { pickWords } from './words.js';
 
 export const OTHER = { red: 'blue', blue: 'red' };
@@ -28,18 +29,33 @@ export function createRoom(code, hostId) {
   };
 }
 
-export function addPlayer(room, { id, name }) {
-  let p = room.players.find((x) => x.id === id);
+/**
+ * Dos identificadores por jugador, a propósito:
+ *   · `token`  secreto, solo lo conocen el servidor y su dueño. Sirve para volver
+ *              a tu sitio tras recargar. NUNCA se envía a los demás.
+ *   · `id`     público, viaja en el estado para pintar equipos y roles.
+ * Antes había uno solo y se difundía: cualquiera podía reconectarse con el id del
+ * operador y quedarse con su vista del tablero.
+ */
+export function addPlayer(room, { token, name }) {
+  let p = room.players.find((x) => x.token === token);
   if (p) {
     p.connected = true;
     if (name) p.name = name;
     return p;
   }
-  p = { id, name: name || 'Agente', team: null, role: null, connected: true };
+  p = {
+    token,
+    id: crypto.randomUUID().slice(0, 8),
+    name: name || 'Agente',
+    team: null, role: null, connected: true,
+  };
   room.players.push(p);
   if (!room.hostId || !room.players.some((x) => x.id === room.hostId)) room.hostId = p.id;
   return p;
 }
+
+export const byToken = (room, token) => room.players.find((p) => p.token === token) || null;
 
 export const teamMembers = (room, team) => room.players.filter((p) => p.team === team);
 
@@ -261,8 +277,8 @@ export function tick(room) {
 }
 
 /** Estado personalizado: solo el operador (o al final de ronda) ve los colores. */
-export function stateFor(room, playerId) {
-  const me = room.players.find((p) => p.id === playerId) || null;
+export function stateFor(room, token) {
+  const me = byToken(room, token);
   const revealAll = room.phase !== 'playing' || me?.role === 'spymaster';
   const g = room.game;
   return {

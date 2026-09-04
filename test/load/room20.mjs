@@ -74,12 +74,12 @@ for (let lote = 0; lote < N; lote += 10) {
 const tConn = performance.now() - t0;
 
 const host = clients[0];
-send(host, { t: 'create', name: 'J0', playerId: 'L0' });
+send(host, { t: 'create', name: 'J0' });
 await untilTrue(() => host.code, 'sala creada');
 const code = host.code;
 const tJoin0 = performance.now();
 for (let i = 1; i < N; i++) {
-  send(clients[i], { t: 'join', code, name: `J${i}`, playerId: `L${i}` });
+  send(clients[i], { t: 'join', code, name: `J${i}` });
   await untilTrue(() => clients[i].last?.you, `J${i} dentro`);
 }
 const tJoin = performance.now() - tJoin0;

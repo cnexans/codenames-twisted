@@ -4,11 +4,10 @@ const el = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) 
 const TEAM_ES = { red: 'ROJO', blue: 'AZUL' };
 
 const store = {
-  get id() {
-    let v = localStorage.getItem('nc:id');
-    if (!v) { v = Math.random().toString(36).slice(2, 12); localStorage.setItem('nc:id', v); }
-    return v;
-  },
+  // Credencial secreta de sesión: la emite el servidor y solo sirve para volver a
+  // tu sitio tras recargar. No se muestra ni viaja a los demás jugadores.
+  get token() { return localStorage.getItem('nc:token') || localStorage.getItem('nc:id') || ''; },
+  set token(v) { localStorage.setItem('nc:token', v); },
   get name() { return localStorage.getItem('nc:name') || ''; },
   set name(v) { localStorage.setItem('nc:name', v); },
 };
@@ -28,7 +27,11 @@ function connect() {
     const m = JSON.parse(ev.data);
     if (m.t === 'state') { state = m; render(); }
     else if (m.t === 'roomList') { rooms = m.rooms; renderRooms(); }
-    else if (m.t === 'joined') { pending = { t: 'join', code: m.code, name: nameValue(), playerId: store.id }; location.hash = m.code; }
+    else if (m.t === 'joined') {
+      store.token = m.token;
+      pending = { t: 'join', code: m.code, name: nameValue(), token: m.token };
+      location.hash = m.code;
+    }
     else if (m.t === 'error') toast(m.msg, true);
     else if (m.t === 'fx') sfx(m);
   };
@@ -49,7 +52,7 @@ const nameValue = () => ($('#in-name').value.trim() || store.name || 'Agente').s
 $('#in-name').value = store.name;
 $('#btn-create').onclick = () => {
   store.name = nameValue();
-  pending = { t: 'create', name: store.name, playerId: store.id };
+  pending = { t: 'create', name: store.name, token: store.token };
   send(pending);
 };
 $('#form-join').onsubmit = (e) => {
@@ -60,7 +63,7 @@ $('#form-join').onsubmit = (e) => {
 };
 function joinCode(code) {
   store.name = nameValue();
-  pending = { t: 'join', code, name: store.name, playerId: store.id };
+  pending = { t: 'join', code, name: store.name, token: store.token };
   send(pending);
 }
 
@@ -93,8 +96,8 @@ function renderRooms() {
 if (location.hash.length === 5) {
   const code = location.hash.slice(1).toUpperCase();
   $('#in-code').value = code;
-  // Volver a entrar sin fricción tras un refresco (mismo playerId guardado).
-  if (store.name) pending = { t: 'join', code, name: store.name, playerId: store.id };
+  // Volver a entrar sin fricción tras un refresco (con el token guardado).
+  if (store.name) pending = { t: 'join', code, name: store.name, token: store.token };
 }
 
 document.querySelectorAll('[data-team]').forEach((b) => {

@@ -53,11 +53,11 @@ const [a, b, c, d] = await Promise.all(['A', 'B', 'C', 'D'].map(client));
 const all = [a, b, c, d];
 
 // ── sala y equipos ──────────────────────────────────────────────
-send(a, { t: 'create', name: 'Ana', playerId: 'p1' });
+send(a, { t: 'create', name: 'Ana' });
 await until(a, (s) => s.code, 'sala creada');
 const code = a.code;
-for (const [w, name, id] of [[b, 'Beto', 'p2'], [c, 'Cris', 'p3'], [d, 'Dani', 'p4']]) {
-  send(w, { t: 'join', code, name, playerId: id });
+for (const [w, name] of [[b, 'Beto'], [c, 'Cris'], [d, 'Dani']]) {
+  send(w, { t: 'join', code, name });
   await until(w, (s) => s.you?.name === name, `${name} dentro`);
 }
 ok(a.last.players.length === 4, '4 jugadores en la sala');
@@ -97,6 +97,15 @@ ok(a.last.players.every((p) => p.name !== 'Tramposo'), 'el nombre no cambió dur
 const redBoss = bossOf(all, 'red'), blueBoss = bossOf(all, 'blue');
 const redSpy = spyOf(all, 'red'), blueSpy = spyOf(all, 'blue');
 ok(!!redBoss && !!blueBoss, `un operador por equipo (${redBoss.last.you.name} / ${blueBoss.last.you.name})`);
+
+// El id público que todos ven NO debe servir para robar la sesión del operador.
+const idPublicoDelOperador = redSpy.last.players.find((p) => p.role === 'spymaster' && p.team === 'red').id;
+const impostor = await client('IMP');
+send(impostor, { t: 'join', code, name: 'Impostor', token: idPublicoDelOperador });
+await until(impostor, (s) => s.you, 'impostor dentro');
+ok(impostor.last.game.board.every((x) => x.type === null),
+   'con el id público de otro no se hereda su vista del tablero');
+ok(impostor.last.you.role !== 'spymaster', 'el impostor entra como jugador nuevo, no como el operador');
 ok(redBoss.last.game.board.every((x) => x.type), 'el operador ve todos los colores');
 ok([redSpy, blueSpy].every((w) => w.last.game.board.every((x) => x.type === null)), 'los espías no ven ningún color');
 
@@ -136,6 +145,14 @@ ok(a.last.game.turn === 'blue', 'la ronda 2 la empieza el otro equipo');
 const redBoss2 = bossOf(all, 'red'), blueBoss2 = bossOf(all, 'blue');
 ok(redBoss2.last.you.id !== redBoss.last.you.id, `el operador rojo rotó (${redBoss.last.you.name} → ${redBoss2.last.you.name})`);
 ok(blueBoss2.last.you.id !== blueBoss.last.you.id, `el operador azul rotó (${blueBoss.last.you.name} → ${blueBoss2.last.you.name})`);
+// El operador no puede cortar el turno de los suyos: sabe la clave y sería una
+// forma encubierta de dar pistas ("paren, la siguiente es el asesino"). El
+// anfitrión sí puede saltar turnos, pero eso queda escrito en el registro.
+send(blueBoss2, { t: 'endTurn' });
+await wait(150);
+ok(blueBoss2.last.game.turn === 'blue' && /No es tu turno/.test(blueBoss2.lastError || ''),
+   'el operador no puede terminar el turno de su equipo');
+
 const antes = new Set(key.map((x) => x.word));
 ok(redBoss2.last.game.board.every((x) => !antes.has(x.word)), 'las 25 palabras de la ronda 2 son nuevas');
 
@@ -152,6 +169,6 @@ await until(a, (s) => s.phase === 'gameEnd', 'fin de partida');
 ok(a.last.history.length === 2, 'historial con las 2 rondas');
 console.log(`\nMarcador final: rojo ${a.last.scores.red} — azul ${a.last.scores.blue}`);
 
-[...all, mirón].forEach((w) => w.close());
+[...all, mirón, impostor].forEach((w) => w.close());
 console.log(fails ? `\n${fails} fallo(s)` : '\nTodo en orden ✅');
 process.exit(fails ? 1 : 0);

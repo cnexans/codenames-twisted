@@ -18,7 +18,11 @@ hasta el final de la partida.
    los colores del tablero. La rotación sigue el orden de llegada al equipo, así que en una
    partida de 5 rondas con 3 personas por equipo, todas terminan siendo operador.
 4. El operador da una pista de **una sola palabra** + un número (o ∞): cuántas cartas se relacionan.
-5. Su equipo tiene ese número de intentos **+1**. Cada carta se destapa con dos clics (el segundo confirma).
+5. Su equipo tiene ese número de intentos **+1**, y son del **equipo entero, no de cada
+   persona**: como en el juego de mesa, se discute en voz alta y cualquiera de los espías
+   de campo puede destapar cualquier carta, en el orden que sea. El primero que confirma,
+   manda. Cada carta se destapa con dos clics (el segundo confirma, para evitar resbalones).
+   El operador no puede destapar ni cortar el turno de los suyos: sabe la clave.
    - Carta de tu color → sigue el turno.
    - Transeúnte (beige) → termina el turno.
    - Carta del rival → se la regalas y termina el turno.
@@ -116,6 +120,23 @@ public/
   index.html · style.css · app.js · img/
 scripts/gen-art.mjs   generación opcional de ilustraciones
 ```
+
+## Seguridad del juego
+
+Lo único que hay que proteger aquí es la clave del tablero, y se protege en el
+servidor: `stateFor()` arma un estado distinto por jugador y el color viaja como
+`null` para quien no es operador. No es que la interfaz lo tape — el dato no sale
+del servidor, así que mirar el tráfico o la consola no revela nada.
+
+Cada jugador tiene **dos identificadores**: un `token` secreto (lo emite el servidor,
+sirve para volver a tu sitio tras recargar y nunca se difunde) y un `id` público que
+viaja en el estado para pintar equipos y roles. Antes había uno solo y se difundía:
+cualquiera podía reconectarse con el identificador del operador y quedarse con su
+vista del tablero. `npm test` incluye la regresión de ese caso.
+
+Lo que **no** hay, y conviene saberlo: no hay cuentas ni contraseñas. Quien tenga el
+código de sala entra, y las salas abiertas se listan en la portada. Para jugar entre
+amigos está bien; no metas nada sensible en los nombres.
 
 ## Detalles útiles
 
