@@ -328,3 +328,17 @@ sudo journalctl -u caddy -f                  # TLS / proxy
 ```
 
 Si prefieres SSH: `pulumi config set sshCidr TU.IP.PU.BLICA/32` y añade tu llave al stack.
+
+## Licencia y origen del juego
+
+El código, las 828 palabras del diccionario, las ilustraciones y los textos de este
+repositorio son originales y se publican bajo licencia **MIT** (ver `LICENSE`).
+
+Es una implementación propia e independiente de una mecánica de juego de palabras por
+equipos, **inspirada en _Codenames_, de Vlaada Chvátil**. No está afiliada ni respaldada
+por Czech Games Edition, que publica el juego original y es titular de la marca
+_Codenames_ (en español, _Código Secreto_, editado por Devir).
+
+La mecánica de un juego no está protegida por derechos de autor —lo que sí lo está es su
+texto, su arte y sus materiales—, y aquí no se incluye ninguno: las palabras, los dibujos
+y el reglamento escrito son propios. Si quieres el juego de mesa, cómpralo: es excelente.
