@@ -224,6 +224,10 @@ salvo detalles menores.
 
 ### Pasos
 
+> **No hay nada desplegado.** La infraestructura se destruyó y el stack se borró, así
+> que esto arranca de cero: no hay estado previo que recuperar ni frase de paso que
+> conservar.
+
 ```bash
 cd infra
 npm install
@@ -233,6 +237,9 @@ pulumi config set domain codenames.cnexans.com
 pulumi config set acmeEmail tu@correo.com     # avisos de Let's Encrypt
 pulumi up
 ```
+
+Para volver a tener despliegue automático desde GitHub Actions hace falta rehacer el rol
+OIDC (también se borró): `./ci-setup.sh`, y luego `gh workflow enable deploy.yml`.
 
 Al terminar imprime la IP elástica. En **Cloudflare** crea el registro:
 
